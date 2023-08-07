@@ -688,5 +688,7 @@ if bool_savefigs:
     plt.savefig(f'./Figures/{dataset}',dpi=600)
 
 if bool_exportdata:
+    from pathlib import Path
+    Path("./ExportedData/").mkdir(parents=True, exist_ok=True)
     with open(f'./ExportedData/{dataset}.pkl', 'wb') as f:
         pickle.dump({'General Data':d_general,'Data Iterations':d_iter}, f)
