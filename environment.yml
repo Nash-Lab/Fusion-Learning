@@ -1,0 +1,13 @@
+name: FUSION_learning
+channels:
+  - defaults
+dependencies:
+  - pip=21.1.2=py38hecd8cb5_0
+  - anaconda::python=3.8.3=h26836e1_2
+  - conda-forge::tensorflow=2.6.0=py38h52b2510_1  
+  - scikit-learn=0.23.1=py38h603561c_0                        
+  - anaconda::matplotlib=3.3.1 
+  - anaconda::dask=2021.7.0=pyhd3eb1b0_0
+  - pip:
+      - tensorflow==2.6.0
+      - tensorflow-addons==0.14.0
