@@ -2,10 +2,11 @@
 
 ![Alt text](TOC.png?raw=true "Title")
 
- Python script used to perform Forced Unfolding and Supervised Iterative Online (FUSION) learning analysis in the context of the publication entitled "Iterative Machine Learning for Classification and Discovery of Single-molecule Unfolding Trajectories from Force Spectroscopy Data".
+ Python script used to perform Forced Unfolding and Supervised Iterative ONline (FUSION) learning analysis in the context of the publication entitled "Iterative Machine Learning for Classification and Discovery of Single-molecule Unfolding Trajectories from Force Spectroscopy Data".
 
  - [Overview](##overview)
  - [Software Requirements](##Software-Requirements)
+ - [Data Requirements](##Data-Requirements)
  - [Usage](##Usage)
  - [Citation](##Citation)
 
@@ -15,7 +16,7 @@
 
 `environment.yml` contains the necessary information regarding the dependencies used to run `FusionLearning.py`.
 
-`Data.zip` contains the raw data utilised in our work. Specifically, of the experimental and simulation case studies. It needs to be unzipped before being able to run `FusionLearning.py`
+`Data.zip` (available at https://doi.org/10.5281/zenodo.8224236) contains the raw data utilised in our work. Specifically, of the experimental and simulation case studies. It needs to be downloaded separately and unzipped before being able to run `FusionLearning.py`
 
 `Figures/` contains the figures exported from `FusionLearning.py`.
 
@@ -31,6 +32,9 @@ conda env create --file=environment.yml
 ```
 
 Note that `Data.zip` needs to to be unzipped before being able to run `FusionLearning.py`
+
+## Data Requirements
+The raw data used to run `FusionLearning.py` are available free of charge at https://doi.org/10.5281/zenodo.8224236. The linked archive should be downloaded, unziped and stored in the same directory of `FusionLearning.py`. Note that the numpy files has to be contained in a folder called `Data` (`./Data/Experiment.npz`, `./Data/Simulation_test.npz` and `./Data/Simulation_train.npz`).
 
 ## Usage
 To use `FusionLearning.py` one could load the appropriate conda environment and run the script in a terminal as follow:
