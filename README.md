@@ -53,4 +53,4 @@ python3 ./FusionLearning.py -h
 ```
 
 ## Citation
-For usage of the package and associated manuscript, please cite according to the enclosed [citation.bib]().
+For usage of the package and associated manuscript, please cite according to the enclosed [citation.bib](citation.bib).
