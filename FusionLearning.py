@@ -30,7 +30,11 @@ from tensorflow_addons.losses import TripletHardLoss #tfa.__version__ == 0.14.0
 import numpy as np #np.__version__ == 1.19.2
 import math
 import matplotlib.pyplot as plt #matplotlib.__version__ == 3.3.1
-plt.rcParams["font.family"] = "Times"#https://stackoverflow.com/questions/40734672/how-to-set-the-label-fonts-as-time-new-roman-by-drawparallels-in-python/40734893
+# plt.rcParams["font.family"] = "Times"#https://stackoverflow.com/questions/40734672/how-to-set-the-label-fonts-as-time-new-roman-by-drawparallels-in-python/40734893
+plt.rcParams['text.usetex'] = True 
+plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = 'Arial'
 from matplotlib.cm import cool,viridis
 from matplotlib import cm
 from matplotlib.colors import LinearSegmentedColormap
