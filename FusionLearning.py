@@ -18,27 +18,38 @@ parser.add_argument("-l", type=float, help="What norm use for the distance matri
                     action="store",default=2)
 parser.add_argument("--savedata", type=bool, help="Save all data (general and per each iteration in) in folder ./ExportedData",
                     action="store",default=False)
+parser.add_argument("--renderfig", type=bool, help="Render Figure. If False, --savefig will be forced to be False. Please use False if you are running FUSION Learning using the broader installation guide (without builds specified)",
+                    action="store",default=False)
 parser.add_argument("--savefig", type=bool, help="Save Figure in folder ./Figures",
                     action="store",default=False)
 parser.add_argument("--upsample", type=bool, help="Perform upsampling on data?",
                     action="store",default=True)
 args = parser.parse_args()
 
+if (args.renderfig == False)&(args.savefig == True):
+    args.savefig = False
+
 #%% Load Libraries
 import tensorflow as tf #tf.__version__ == 2.6.0
 from tensorflow_addons.losses import TripletHardLoss #tfa.__version__ == 0.14.0
 import numpy as np #np.__version__ == 1.19.2
 import math
-import matplotlib.pyplot as plt #matplotlib.__version__ == 3.3.1
-# plt.rcParams["font.family"] = "Times"#https://stackoverflow.com/questions/40734672/how-to-set-the-label-fonts-as-time-new-roman-by-drawparallels-in-python/40734893
-plt.rcParams['text.usetex'] = True 
-plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = 'Arial'
-from matplotlib.cm import cool,viridis
-from matplotlib import cm
-from matplotlib.colors import LinearSegmentedColormap
-import matplotlib.path as mplPath
+if args.renderfig == True:
+    import matplotlib.pyplot as plt #matplotlib.__version__ == 3.3.1
+    # plt.rcParams["font.family"] = "Times"#https://stackoverflow.com/questions/40734672/how-to-set-the-label-fonts-as-time-new-roman-by-drawparallels-in-python/40734893
+    plt.rcParams['text.usetex'] = True 
+    plt.rcParams['text.latex.preamble'] = r'\usepackage[cm]{sfmath}'
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = 'Arial'
+    from matplotlib.cm import cool,viridis
+    from matplotlib import cm
+    from matplotlib.colors import LinearSegmentedColormap
+    import matplotlib.path as mplPath
+    
+    cmap_bad_good_simulated = LinearSegmentedColormap.from_list("", [np.array([0.8834,0,0.4756,1]),np.array([0,0.5625,0.2128,1])])
+    cmap_bad_1_2_3_simulated = LinearSegmentedColormap.from_list("", [np.array([0.8834,0,0.4756,1]),np.array([0.5611,0.7765,0.5875,1]),np.array([0.5150,0.8113,0.9383,1]),np.array([1,0.9579,0.6038,1])])
+    cmap_bad_1_2_3_exp = LinearSegmentedColormap.from_list("", [np.array([1,0,0,1]),viridis(0),viridis(0.5),viridis(0.999)])
+
 from sklearn.cluster import KMeans #sklearn.__version__ == 0.23.1
 kmeans = KMeans(n_clusters=2,random_state=42,n_jobs=1)
 from sklearn.linear_model import LogisticRegression
@@ -48,9 +59,6 @@ from sklearn.metrics import confusion_matrix
 import dask.array as da #dask.__version__ == 2021.07.0
 from dask.diagnostics import ProgressBar
 
-cmap_bad_good_simulated = LinearSegmentedColormap.from_list("", [np.array([0.8834,0,0.4756,1]),np.array([0,0.5625,0.2128,1])])
-cmap_bad_1_2_3_simulated = LinearSegmentedColormap.from_list("", [np.array([0.8834,0,0.4756,1]),np.array([0.5611,0.7765,0.5875,1]),np.array([0.5150,0.8113,0.9383,1]),np.array([1,0.9579,0.6038,1])])
-cmap_bad_1_2_3_exp = LinearSegmentedColormap.from_list("", [np.array([1,0,0,1]),viridis(0),viridis(0.5),viridis(0.999)])
 
 #%% Parameters
 
@@ -202,8 +210,9 @@ np.random.seed(0)
 np.random.shuffle(idx_train)
     
 if file_name_dataset == 'Simulation_train.npz':
-    cmap_bad_good = cmap_bad_good_simulated
-    cmap_bad_1_2_3 = cmap_bad_1_2_3_simulated
+    if args.renderfig == True:
+        cmap_bad_good = cmap_bad_good_simulated
+        cmap_bad_1_2_3 = cmap_bad_1_2_3_simulated
     
     x=x.numpy()[mask_train,...][idx_train,...]
     y=y[mask_train,...][idx_train,...]
@@ -216,8 +225,9 @@ if file_name_dataset == 'Simulation_train.npz':
     x_test,y_test,x_raw_test,y_raw_test,x_1D_processed_test,x_2D_processed_test = import_data(file_name_dataset)
 
 else:
-    cmap_bad_good = cool
-    cmap_bad_1_2_3 = cmap_bad_1_2_3_exp
+    if args.renderfig == True:
+        cmap_bad_good = cool
+        cmap_bad_1_2_3 = cmap_bad_1_2_3_exp
     
     x,y,x_raw,y_raw,x_1D_processed,x_2D_processed = import_data(file_name_dataset)
         
@@ -270,27 +280,28 @@ cb = [tf.keras.callbacks.EarlyStopping(patience=50,restore_best_weights=True)
         ,tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss',factor=0.1,patience=10,cooldown=5)]
 
 # output figure
-fig_out = plt.figure(figsize=(9.5,9.5*2480/2391))
-gs = fig_out.add_gridspec(4,6)#, hspace=0.1, wspace=0.1)
-gs.set_height_ratios([1,2,0.,2])
-ax_layer1 = fig_out.add_subplot(gs[0, :])# binary classifier
-ax_layer1.set_xlim(0,data.max())
-ax_layer1.set_ylim(0,100)
-ax_layer1.plot([0,data.max()],[0,100],'k--')
-ax_layer2_0 = fig_out.add_subplot(gs[1, 0:2])# embedding @data_emb[0]
-ax_layer2_1 = fig_out.add_subplot(gs[1, 2:4])# embedding @data_emb[1]
-ax_layer2_2 = fig_out.add_subplot(gs[1, 4:6])# embedding @data_emb[2]
-ax_legend = fig_out.add_subplot(gs[2, 0:6])
-ax_layer3_0 = fig_out.add_subplot(gs[3, 0:3])# covariance @data_cov, p_classifier>0.5
-ax_layer3_1 = fig_out.add_subplot(gs[3, 3:6])# covariance @data_cov, p_classifier<0.5
-
-# output figure legend
-ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([0/3])),label='Bad',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
-ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([1/3])),label='P1',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
-ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([2/3])),label='P2',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
-ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([3/3])),label='P3',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
-ax_legend.set_axis_off()
-ax_legend.legend(loc="center", ncol = 4, columnspacing=5, prop={'size': 12})
+if args.renderfig == True:
+    fig_out = plt.figure(figsize=(9.5,9.5*2480/2391))
+    gs = fig_out.add_gridspec(4,6)#, hspace=0.1, wspace=0.1)
+    gs.set_height_ratios([1,2,0.,2])
+    ax_layer1 = fig_out.add_subplot(gs[0, :])# binary classifier
+    ax_layer1.set_xlim(0,data.max())
+    ax_layer1.set_ylim(0,100)
+    ax_layer1.plot([0,data.max()],[0,100],'k--')
+    ax_layer2_0 = fig_out.add_subplot(gs[1, 0:2])# embedding @data_emb[0]
+    ax_layer2_1 = fig_out.add_subplot(gs[1, 2:4])# embedding @data_emb[1]
+    ax_layer2_2 = fig_out.add_subplot(gs[1, 4:6])# embedding @data_emb[2]
+    ax_legend = fig_out.add_subplot(gs[2, 0:6])
+    ax_layer3_0 = fig_out.add_subplot(gs[3, 0:3])# covariance @data_cov, p_classifier>0.5
+    ax_layer3_1 = fig_out.add_subplot(gs[3, 3:6])# covariance @data_cov, p_classifier<0.5
+    
+    # output figure legend
+    ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([0/3])),label='Bad',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
+    ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([1/3])),label='P1',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
+    ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([2/3])),label='P2',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
+    ax_legend.scatter([0],[0],c=cmap_bad_1_2_3(np.array([3/3])),label='P3',marker='.', edgecolor='black', s=60*2,linewidth=0.1)
+    ax_legend.set_axis_off()
+    ax_legend.legend(loc="center", ncol = 4, columnspacing=5, prop={'size': 12})
 
 # initialize export data 
 if bool_exportdata:
@@ -397,9 +408,10 @@ for i,i_data in enumerate(data):
     # append the new fraction of data visualized and good curves found
     frac_data.append(i_data/y_raw.size)
     result_frac_positive.append(y[idx_visualized,:].sum()/y.sum())
-    ax_layer1.plot([i_data-n_iter_new_curves,i_data],np.array([i_data-n_iter_new_curves,i_data])/(y_raw>0).sum()*100,':',color='k',)
-    ax_layer1.plot([i_data-n_iter_new_curves,i_data],np.array(result_frac_positive[-2:])*100,color='k')
-    plt.pause(0.0001)
+    if args.renderfig == True:
+        ax_layer1.plot([i_data-n_iter_new_curves,i_data],np.array([i_data-n_iter_new_curves,i_data])/(y_raw>0).sum()*100,':',color='k',)
+        ax_layer1.plot([i_data-n_iter_new_curves,i_data],np.array(result_frac_positive[-2:])*100,color='k')
+        plt.pause(0.0001)
     
     # Embedding Space
     # training / validation split (binary classifier)
@@ -434,12 +446,13 @@ for i,i_data in enumerate(data):
     
     if i_data in data_emb:
         # select the figure axis for Layer 2
-        if i_data==data_emb[0]:
-            ax_temp = ax_layer2_0
-        elif i_data==data_emb[1]:
-            ax_temp = ax_layer2_1
-        else:
-            ax_temp = ax_layer2_2
+        if args.renderfig == True:
+            if i_data==data_emb[0]:
+                ax_temp = ax_layer2_0
+            elif i_data==data_emb[1]:
+                ax_temp = ax_layer2_1
+            else:
+                ax_temp = ax_layer2_2
         
         
         score_emb_val = []
@@ -467,10 +480,11 @@ for i,i_data in enumerate(data):
         print(confusion_matrix(y_raw_test,y_pred_test)[:,:2])
 
         # plot the embedding space (predicted positive accordingly with the binary classifier)
-        ax_temp.scatter(y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5,0],y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5,1],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
-        ax_temp.scatter(y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5,0],y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5,1],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
+        if args.renderfig == True:
+            ax_temp.scatter(y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5,0],y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5,1],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
+            ax_temp.scatter(y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5,0],y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5,1],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
         
-        ax_temp.axis('square')
+            ax_temp.axis('square')
         
         #export data
         if bool_exportdata:
@@ -488,8 +502,9 @@ for i,i_data in enumerate(data):
             # extract kmeans center of masses
             kmeans_centers = kmeans.cluster_centers_.copy()
             
-            ax_temp_xlim = np.array(ax_temp.get_xlim())
-            ax_temp_ylim = np.array(ax_temp.get_ylim())
+            if args.renderfig == True:
+                ax_temp_xlim = np.array(ax_temp.get_xlim())
+                ax_temp_ylim = np.array(ax_temp.get_ylim())
             
             # define kmeans confusion matrix
             temp_0 = np.unique(y_raw_test[y_pred_test.flatten()>0.5,:][kmeans_pred==0,0],return_counts=True)
@@ -521,27 +536,28 @@ for i,i_data in enumerate(data):
             kmeans_n = (kmeans_centers[0,:]-kmeans_middle_point).reshape(-1,1)
             
             # kmeans color trick
-            y_ax_temp = line_eq(ax_temp_xlim,kmeans_centers)
-            bbPath = mplPath.Path(np.array([[ax_temp_xlim[1], ax_temp_ylim[0]],
-                                            [ax_temp_xlim[1], y_ax_temp[1]],
-                                            [ax_temp_xlim[0], y_ax_temp[0]],
-                                            [ax_temp_xlim[0], ax_temp_ylim[0]]]))
-            if bbPath.contains_point(kmeans_centers[0])&(kmeans.predict(kmeans_centers[:1,:])==0):
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color1,zorder=0)
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color0,zorder=0)
-                
-                kmeans_n = (kmeans_centers[1,:]-kmeans_middle_point).reshape(-1,1)
-            elif bbPath.contains_point(kmeans_centers[1])&(kmeans.predict(kmeans_centers[:1,:])==0):
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color0,zorder=0)
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color1,zorder=0)
-                
-                kmeans_n = (kmeans_centers[1,:]-kmeans_middle_point).reshape(-1,1)
-            elif bbPath.contains_point(kmeans_centers[0])&(kmeans.predict(kmeans_centers[:1,:])==1):
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color0,zorder=0)
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color1,zorder=0)
-            elif bbPath.contains_point(kmeans_centers[1])&(kmeans.predict(kmeans_centers[:1,:])==1):
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color1,zorder=0)
-                ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color0,zorder=0)
+            if args.renderfig == True:
+                y_ax_temp = line_eq(ax_temp_xlim,kmeans_centers)
+                bbPath = mplPath.Path(np.array([[ax_temp_xlim[1], ax_temp_ylim[0]],
+                                                [ax_temp_xlim[1], y_ax_temp[1]],
+                                                [ax_temp_xlim[0], y_ax_temp[0]],
+                                                [ax_temp_xlim[0], ax_temp_ylim[0]]]))
+                if bbPath.contains_point(kmeans_centers[0])&(kmeans.predict(kmeans_centers[:1,:])==0):
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color1,zorder=0)
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color0,zorder=0)
+                    
+                    kmeans_n = (kmeans_centers[1,:]-kmeans_middle_point).reshape(-1,1)
+                elif bbPath.contains_point(kmeans_centers[1])&(kmeans.predict(kmeans_centers[:1,:])==0):
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color0,zorder=0)
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color1,zorder=0)
+                    
+                    kmeans_n = (kmeans_centers[1,:]-kmeans_middle_point).reshape(-1,1)
+                elif bbPath.contains_point(kmeans_centers[0])&(kmeans.predict(kmeans_centers[:1,:])==1):
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color0,zorder=0)
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color1,zorder=0)
+                elif bbPath.contains_point(kmeans_centers[1])&(kmeans.predict(kmeans_centers[:1,:])==1):
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[0],color=color1,zorder=0)
+                    ax_temp.fill_between(ax_temp_xlim[::-1],y_ax_temp[::-1],ax_temp_ylim[1],color=color0,zorder=0)
             
             # normalize the kmeans normal vector
             kmeans_n/=np.linalg.norm(kmeans_n,ord=2)
@@ -557,34 +573,35 @@ for i,i_data in enumerate(data):
                 # calculate covariance
                 var = np.diag(np.exp(-distance_te_te/k_scale_class_opt)-np.exp(-distance_te_trtot/k_scale_class_opt)@np.linalg.inv(np.exp(-distance_trtot_trtot/k_scale_class_opt)+1e-8*np.eye(distance_trtot_trtot.shape[0]))@np.exp(-distance_te_trtot.T/k_scale_class_opt))
                 
-                # plot Layer 3, positive
-                ax_layer3_0.scatter((new_y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5,:])[:,0],var[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
-                ax_layer3_0.scatter((new_y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5,:])[:,0],var[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
-                
-                # plot Layer 3, negatives
-                ax_layer3_1.scatter((new_y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]<0.5,:])[:,0],var[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]<0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]<0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
-                ax_layer3_1.scatter((new_y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]<0.5,:])[:,0],var[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]<0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]<0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
-                
-                # log scale
-                ax_layer3_0.set_yscale('log')
-                ax_layer3_1.set_yscale('log')
-                
-                # set axes limits
-                ax_layer3_0.set_xlim((np.min([ax_layer3_0.get_xlim()[0],ax_layer3_1.get_xlim()[0]]),
-                                      np.max([ax_layer3_0.get_xlim()[1],ax_layer3_1.get_xlim()[1]]),
-                                      ))
-                ax_layer3_0.set_ylim((np.min([ax_layer3_0.get_ylim()[0],ax_layer3_1.get_ylim()[0]]),
-                                      np.max([ax_layer3_0.get_ylim()[1],ax_layer3_1.get_ylim()[1]]),
-                                      ))
-                ax_layer3_1.set_xlim(ax_layer3_0.get_xlim())
-                ax_layer3_1.set_ylim(ax_layer3_0.get_ylim())
-                
-                
-                # color accordingly to k-means
-                ax_layer3_0.fill_betweenx(np.array(ax_layer3_0.get_ylim()),ax_layer3_0.get_xlim()[0],0,color=color1,zorder=0)
-                ax_layer3_0.fill_betweenx(np.array(ax_layer3_0.get_ylim()),0,ax_layer3_0.get_xlim()[1],color=color0,zorder=0)
-                ax_layer3_1.fill_betweenx(np.array(ax_layer3_1.get_ylim()),ax_layer3_1.get_xlim()[0],0,color=color1,zorder=0)
-                ax_layer3_1.fill_betweenx(np.array(ax_layer3_1.get_ylim()),0,ax_layer3_1.get_xlim()[1],color=color0,zorder=0)
+                if args.renderfig == True:
+                    # plot Layer 3, positive
+                    ax_layer3_0.scatter((new_y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5,:])[:,0],var[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
+                    ax_layer3_0.scatter((new_y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5,:])[:,0],var[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]>0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
+                    
+                    # plot Layer 3, negatives
+                    ax_layer3_1.scatter((new_y_pred_emb[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]<0.5,:])[:,0],var[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]<0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()!=3][y_pred_test.flatten()[y_raw_test.flatten()!=3]<0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
+                    ax_layer3_1.scatter((new_y_pred_emb[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]<0.5,:])[:,0],var[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]<0.5],c=cmap_bad_1_2_3(y_raw_test.flatten()[y_raw_test.flatten()==3][y_pred_test.flatten()[y_raw_test.flatten()==3]<0.5]/3),marker='.', edgecolor='black', s=60,linewidth=0.1)
+                    
+                    # log scale
+                    ax_layer3_0.set_yscale('log')
+                    ax_layer3_1.set_yscale('log')
+                    
+                    # set axes limits
+                    ax_layer3_0.set_xlim((np.min([ax_layer3_0.get_xlim()[0],ax_layer3_1.get_xlim()[0]]),
+                                          np.max([ax_layer3_0.get_xlim()[1],ax_layer3_1.get_xlim()[1]]),
+                                          ))
+                    ax_layer3_0.set_ylim((np.min([ax_layer3_0.get_ylim()[0],ax_layer3_1.get_ylim()[0]]),
+                                          np.max([ax_layer3_0.get_ylim()[1],ax_layer3_1.get_ylim()[1]]),
+                                          ))
+                    ax_layer3_1.set_xlim(ax_layer3_0.get_xlim())
+                    ax_layer3_1.set_ylim(ax_layer3_0.get_ylim())
+                    
+                    
+                    # color accordingly to k-means
+                    ax_layer3_0.fill_betweenx(np.array(ax_layer3_0.get_ylim()),ax_layer3_0.get_xlim()[0],0,color=color1,zorder=0)
+                    ax_layer3_0.fill_betweenx(np.array(ax_layer3_0.get_ylim()),0,ax_layer3_0.get_xlim()[1],color=color0,zorder=0)
+                    ax_layer3_1.fill_betweenx(np.array(ax_layer3_1.get_ylim()),ax_layer3_1.get_xlim()[0],0,color=color1,zorder=0)
+                    ax_layer3_1.fill_betweenx(np.array(ax_layer3_1.get_ylim()),0,ax_layer3_1.get_xlim()[1],color=color0,zorder=0)
 
                 # Layer 3 (positive, embedding+covariance, k-means) confusion matrix
                 temp_0 = np.unique(y_raw_test[y_pred_test.flatten()>0.5,:][new_y_pred_emb[y_pred_test.flatten()>0.5,0]>0,0],return_counts=True)
@@ -619,7 +636,8 @@ for i,i_data in enumerate(data):
                     d_iter_temp['posterior covariance (negative classified)'] = var[y_pred_test.flatten()<0.5]
 
         # interactive plot
-        plt.pause(0.001)
+        if args.renderfig == True:
+            plt.pause(0.001)
         
         # export data
         if bool_exportdata:
@@ -633,63 +651,65 @@ result_frac_positive.append(1)
 result_frac_positive=np.array(result_frac_positive)
 
 # sub-figure for Layer 1 (binary classifier)
-ax_layer1.clear()
-ax_layer1.plot([0,(y_raw>0).sum()/data.max(),1],[0,1,1],':k',label='perfect classifier')
-ax_layer1.plot(frac_data,result_frac_positive,'k',label='FUSION')
-ax_layer1.plot(frac_data,frac_data,'k--',label='random sampling')
-ax_layer1.set_xlim(0,1)
-ax_layer1.set_ylim(0,1)
-if file_name_dataset == 'Simulation_test.npz':
-    ax_layer1.set_xticks(np.concatenate((data_emb,np.array([len(x_emb_train)])))/len(x_emb_train))
-    ax_layer1.set_xticklabels(np.concatenate((data_emb,np.array([len(x_emb_train)]))))
-else:
-    ax_layer1.set_xticks(data_emb/len(x_emb_train))
-    ax_layer1.set_xticklabels(data_emb)    
-ax_layer1.set_xticks(np.linspace(0,1,5),minor=True)
-ax_layer1.tick_params(axis="x",direction="in",which='minor')
-ax_layer1.tick_params(axis="x",direction="out",which='major')
-ax_layer1.set_yticks(np.linspace(0,1,5))
-ax_layer1.set_yticklabels((np.linspace(0,1,5)*100).astype(int))
-ax_layer1.grid(axis='y',which='major',linestyle=':')
-ax_layer1.grid(axis='x',which='minor',linestyle=':')
-ax_layer1.grid(axis='x',which='major',linestyle='-.')
-ax_layer1.legend(loc='lower right')
+if args.renderfig == True:
+    ax_layer1.clear()
+    ax_layer1.plot([0,(y_raw>0).sum()/data.max(),1],[0,1,1],':k',label='perfect classifier')
+    ax_layer1.plot(frac_data,result_frac_positive,'k',label='FUSION')
+    ax_layer1.plot(frac_data,frac_data,'k--',label='random sampling')
+    ax_layer1.set_xlim(0,1)
+    ax_layer1.set_ylim(0,1)
+    if file_name_dataset == 'Simulation_test.npz':
+        ax_layer1.set_xticks(np.concatenate((data_emb,np.array([len(x_emb_train)])))/len(x_emb_train))
+        ax_layer1.set_xticklabels(np.concatenate((data_emb,np.array([len(x_emb_train)]))))
+    else:
+        ax_layer1.set_xticks(data_emb/len(x_emb_train))
+        ax_layer1.set_xticklabels(data_emb)    
+    ax_layer1.set_xticks(np.linspace(0,1,5),minor=True)
+    ax_layer1.tick_params(axis="x",direction="in",which='minor')
+    ax_layer1.tick_params(axis="x",direction="out",which='major')
+    ax_layer1.set_yticks(np.linspace(0,1,5))
+    ax_layer1.set_yticklabels((np.linspace(0,1,5)*100).astype(int))
+    ax_layer1.grid(axis='y',which='major',linestyle=':')
+    ax_layer1.grid(axis='x',which='minor',linestyle=':')
+    ax_layer1.grid(axis='x',which='major',linestyle='-.')
+    ax_layer1.legend(loc='lower right')
+    
+    ax_layer1_sec_x = ax_layer1.secondary_xaxis('top')
+    ax_layer1_sec_y = ax_layer1.secondary_yaxis('right')
+    ax_layer1_sec_x.set_xticks(np.linspace(0,1,5))
+    ax_layer1_sec_x.set_xticklabels((np.linspace(0,1,5)*100).astype(int))
+    ax_layer1_sec_y.set_yticks(np.linspace(0,1,5))
+    ax_layer1_sec_y.set_yticklabels((np.linspace(0,1,5)*y.sum()).astype(int))
+    
+    ax_layer1_sec_x.grid(axis='y')
+    ax_layer1_sec_x.grid(axis='x')
+    ax_layer1_sec_y.grid(axis='y')
+    ax_layer1_sec_y.grid(axis='x')
+    
+    ax_layer1.set_xlabel('Number of curves analyzed')
+    ax_layer1.set_ylabel('$\%$ of good curves found')
+    ax_layer1_sec_x.set_xlabel('$\%$ of curves analyzed')
+    ax_layer1_sec_y.set_ylabel('Number of good curves found')
+    
+    # sub-figure for Layer 2 (embedding space)
+    ax_layer2_0.set_ylabel('$y_{emb}$')
+    ax_layer2_0.set_xlabel('$x_{emb}$')
+    ax_layer2_1.set_xlabel('$x_{emb}$')
+    ax_layer2_2.set_xlabel('$x_{emb}$')
+    
+    # sub-figure for Layer 3 (embedding space + covariance)
+    ax_layer3_0.set_xlabel('$n_{k-means}$')
+    ax_layer3_0.set_ylabel('Covariance')
+    ax_layer3_1.set_xlabel('$n_{k-means}$')
+    ax_layer3_1.set_ylabel('Covariance')
+    ax_layer3_1.yaxis.set_label_position("right")
+    ax_layer3_1.tick_params(which='both',right=True,labelright=True,left=False,labelleft=False)
+    
+    # save figure
+    plt.tight_layout()
+    if bool_savefigs:
+        plt.savefig(f'./Figures/{dataset}',dpi=600)
 
-ax_layer1_sec_x = ax_layer1.secondary_xaxis('top')
-ax_layer1_sec_y = ax_layer1.secondary_yaxis('right')
-ax_layer1_sec_x.set_xticks(np.linspace(0,1,5))
-ax_layer1_sec_x.set_xticklabels((np.linspace(0,1,5)*100).astype(int))
-ax_layer1_sec_y.set_yticks(np.linspace(0,1,5))
-ax_layer1_sec_y.set_yticklabels((np.linspace(0,1,5)*y.sum()).astype(int))
-
-ax_layer1_sec_x.grid(axis='y')
-ax_layer1_sec_x.grid(axis='x')
-ax_layer1_sec_y.grid(axis='y')
-ax_layer1_sec_y.grid(axis='x')
-
-ax_layer1.set_xlabel('Number of curves analyzed')
-ax_layer1.set_ylabel('$\%$ of good curves found')
-ax_layer1_sec_x.set_xlabel('$\%$ of curves analyzed')
-ax_layer1_sec_y.set_ylabel('Number of good curves found')
-
-# sub-figure for Layer 2 (embedding space)
-ax_layer2_0.set_ylabel('$y_{emb}$')
-ax_layer2_0.set_xlabel('$x_{emb}$')
-ax_layer2_1.set_xlabel('$x_{emb}$')
-ax_layer2_2.set_xlabel('$x_{emb}$')
-
-# sub-figure for Layer 3 (embedding space + covariance)
-ax_layer3_0.set_xlabel('$n_{k-means}$')
-ax_layer3_0.set_ylabel('Covariance')
-ax_layer3_1.set_xlabel('$n_{k-means}$')
-ax_layer3_1.set_ylabel('Covariance')
-ax_layer3_1.yaxis.set_label_position("right")
-ax_layer3_1.tick_params(which='both',right=True,labelright=True,left=False,labelleft=False)
-
-# save figure
-plt.tight_layout()
-if bool_savefigs:
-    plt.savefig(f'./Figures/{dataset}',dpi=600)
 
 if bool_exportdata:
     from pathlib import Path
