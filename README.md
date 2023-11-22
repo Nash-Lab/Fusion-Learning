@@ -2,7 +2,7 @@
 
 ![Alt text](TOC.png?raw=true "Title")
 
- Python script used to perform Forced Unfolding and Supervised Iterative ONline (FUSION) learning analysis in the context of the publication entitled "Iterative Machine Learning for Classification and Discovery of Single-molecule Unfolding Trajectories from Force Spectroscopy Data" (--> [preprint](https://doi.org/10.1101/2023.08.08.552253)).
+ Python script used to perform Forced Unfolding and Supervised Iterative ONline (FUSION) learning analysis in the context of the publication entitled "Iterative Machine Learning for Classification and Discovery of Single-molecule Unfolding Trajectories from Force Spectroscopy Data" (--> [paper](https://doi.org/10.1021/acs.nanolett.3c0302), [preprint](https://doi.org/10.1101/2023.08.08.552253)).
 
  - [Overview](##overview)
  - [Software Requirements](##Software-Requirements)
