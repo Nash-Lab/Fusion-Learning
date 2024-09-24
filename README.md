@@ -95,11 +95,17 @@ or
 conda activate FUSION_learning
 python3 ./FusionLearning.py -d simulation
 ```
+Additionally, two setup scripts are provided to generate a working conda environment: `setup.sh` and `setup_WinLin.sh` (for Windows or other Unix-based Systems). Please note that conda is still necessary to run such scripts.
+
+
 For an extended overview on the available parameters one could run:
 ```
 python3 ./FusionLearning.py -h
 ```
 If you are experiencing problems in running our script due to latex (especially with Windows), please consider to use the default option (--renderfig False).
+
+## Demo
+A simple Demo to understand Fusion Learning functionalities, necessary inputs and produced outputs is available in `./FusionLearningDemo/`
 
 ## Citation
 For usage of the package and associated manuscript, please cite according to the enclosed [citation.bib](citation.bib).
