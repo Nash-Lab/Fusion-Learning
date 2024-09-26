@@ -1,7 +1,5 @@
  # FusionLearning
 
-![Alt text](TOC.png?raw=true "Title")
-
  Python script used to perform Forced Unfolding and Supervised Iterative ONline (FUSION) learning analysis in the context of the publication entitled "Iterative Machine Learning for Classification and Discovery of Single-molecule Unfolding Trajectories from Force Spectroscopy Data" (--> [paper](https://doi.org/10.1021/acs.nanolett.3c0302), [preprint](https://doi.org/10.1101/2023.08.08.552253)).
 
  - [Overview](##overview)
@@ -12,6 +10,21 @@
 
 
  ## Overview
+
+Abstract: We report the application of machine learning techniques to expedite classification and analysis of protein unfolding trajectories from force spectroscopy data.
+Using kernel methods, logistic regression, and triplet loss, we developed a workflow called Forced Unfolding and Supervised Iterative Online (FUSION) learning
+where a user classifies a small number of repeatable unfolding patterns encoded
+as images, and a machine is tasked with identifying similar images to classify the
+remaining data. We tested the workflow using two case studies on a multidomain XMod−Dockerin/Cohesin complex, validating the approach first
+using synthetic data generated with a Monte Carlo algorithm and then deploying
+the method on experimental atomic force spectroscopy data. FUSION efficiently
+separated traces that passed quality filters from unusable ones, classified curves
+with high accuracy, and identified unfolding pathways that were undetected by
+the user. This study demonstrates the potential of machine learning to accelerate
+data analysis, and generate new insights in protein biophysics.
+
+ ![Alt text](TOC.png?raw=true "Title")
+
  ### Script Information
 
  The `FusionLearning.py` script is designed to work with the provided npy files, which include "Simulation_train", "Simulation_test", or "Experimental" datasets. These files contain various arrays:
